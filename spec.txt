@@ -1,0 +1,7 @@
+Smart Startup & Background Service Manager (tpt-startup)
+The Problem: Task Manager hides scheduled tasks and registry runners. Linux relies on opaque systemd configurations that are hard for beginners to visualize.
+The TPT Solution: A unified dashboard that categorizes startup items into "Safe," "Recommended," and "Critical," with plain-English explanations for every background process.
+
+Compatible on Windows, Linux and Archon. https://github.com/tpt-solutions/tpt-archon
+
+🐧 Linux & Archon Compatibility: Acts as a beautiful visual wrapper for systemd user units and cron jobs on Linux. On Archon, background services are just lightweight user-space tasks. tpt-startup manages their lazy-loading and capability provisioning at boot, ensuring that idle services consume absolutely zero CPU cycles until explicitly triggered.

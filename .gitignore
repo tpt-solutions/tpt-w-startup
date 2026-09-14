@@ -1,0 +1,19 @@
+# Rust
+/target/
+Cargo.lock
+
+# Node / Vite / Tauri frontend
+node_modules/
+dist/
+src-tauri/target/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.local
