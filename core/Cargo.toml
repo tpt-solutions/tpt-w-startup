@@ -1,0 +1,17 @@
+[package]
+name = "tpt-startup-core"
+description = "Platform-independent data model, categorization and action engine for tpt-startup"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+serde_json.workspace = true
+
+[features]
+# Post-v1 Archon backend stub (see docs/archon-design.md). Off by default.
+archon = []

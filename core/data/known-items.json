@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "_comment": "Bundled curated database. 'match' is a case-insensitive substring tested against the display name and command. critical_rules always win over known_items and cannot be downgraded by this file's known_items.",
+  "critical_rules": [
+    {
+      "match": "explorer.exe",
+      "explanation": "Windows shell. Disabling it breaks the desktop. Core OS entry; never suggested for disabling."
+    },
+    {
+      "match": "sihost.exe",
+      "explanation": "Windows Shell Infrastructure Host. Required for the taskbar and notifications."
+    },
+    {
+      "match": "securityhealthsystray",
+      "explanation": "Windows Security tray icon. Disabling it hides security status; the protection itself keeps running."
+    },
+    {
+      "match": "systemd",
+      "explanation": "Core Linux service-manager component. Disabling it can leave the session in a broken state."
+    },
+    {
+      "match": "dbus",
+      "explanation": "Desktop message bus. Many applications and the desktop depend on it."
+    },
+    {
+      "match": "NetworkManager",
+      "explanation": "Network connection manager. Disabling it can cut network access at login."
+    }
+  ],
+  "known_items": [
+    {
+      "match": "onedrive",
+      "publisher": "Microsoft",
+      "category": "recommended",
+      "explanation": "Microsoft OneDrive file sync. Starts sync at login; disabling it stops automatic syncing until you start it manually."
+    },
+    {
+      "match": "discord",
+      "publisher": "Discord Inc.",
+      "category": "safe",
+      "explanation": "Chat app launcher. Safe to disable if you only open Discord when you need it."
+    },
+    {
+      "match": "spotify",
+      "publisher": "Spotify AB",
+      "category": "safe",
+      "explanation": "Music player. Safe to disable; it only adds a background process at login."
+    },
+    {
+      "match": "steam",
+      "publisher": "Valve Corporation",
+      "category": "safe",
+      "explanation": "Game client launcher. Safe to disable unless you want updates applied at login."
+    },
+    {
+      "match": "teams",
+      "publisher": "Microsoft",
+      "category": "safe",
+      "explanation": "Microsoft Teams launcher. Safe to disable if you do not want it opening at login."
+    },
+    {
+      "match": "update",
+      "category": "recommended",
+      "explanation": "Software updater. Keeps an application current. Disabling it means updates are only installed when you run a check yourself."
+    },
+    {
+      "match": "xdg-desktop-portal",
+      "publisher": "freedesktop.org",
+      "category": "recommended",
+      "explanation": "Desktop integration service for sandboxed apps (file pickers, screen sharing). Disabling it can break those features."
+    }
+  ]
+}
