@@ -1,0 +1,12 @@
+[package]
+name = "tpt-startup-linux"
+description = "Linux startup-entry backends for tpt-startup (XDG autostart, cron @reboot parsing)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+tpt-startup-core = { path = "../core" }
