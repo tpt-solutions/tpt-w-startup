@@ -46,19 +46,19 @@ Decisions locked in for this roadmap:
 |-------|------|----------|
 | 0  | Project Setup & Licensing                    | 🟡 Partial — workspace, licensing, CI, Tauri + frontend scaffold done; elevation manifest and repo hosting outstanding |
 | 1  | Core Data Model                              | ✅ Done |
-| 2  | Windows Backend                              | 🟡 Partial — Startup folder, registry Run/RunOnce (native view), signatures; Task Scheduler and all-users paths outstanding |
+| 2  | Windows Backend                              | ✅ Done — Startup folders (user + all-users), registry Run/RunOnce (native + WOW6432Node), Task Scheduler, signatures; HKCU WOW6432Node not read |
 | 3  | Linux Backend                                | 🟡 Partial — XDG autostart, systemd user units, user crontab; system scope and distro QA outstanding |
 | 4  | Categorization & Explanation Engine          | ✅ Done |
 | 5  | Boot Impact Estimation                       | 🟡 Partial — normalization, systemd timings, Windows decision documented (not measured) |
-| 6  | Item Actions (Enable/Disable/Delete)         | ✅ Done — wired to every implemented source; undo not built |
+| 6  | Item Actions (Enable/Disable/Delete)         | ✅ Done — wired to every implemented source; Undo reverses the last enable/disable |
 | 7  | Tauri Shell & IPC Layer                       | ✅ Done — commands wired to core; ids validated by re-enumeration |
 | 8  | Frontend Dashboard                            | 🟡 Built and type-checked; not yet exercised by hand in the running app |
 | 9  | Archon Support (Design Only)                  | ✅ Done (design-only, as specified) |
 | 10 | Performance & Polish                          | 🟡 Partial — first-run notice only |
-| 11 | Testing & QA                                  | 🟡 Partial — 70 automated tests (Windows registry and file tests on real disposable data); no manual QA |
+| 11 | Testing & QA                                  | 🟡 Partial — 86 automated tests (Windows registry and file tests on real disposable data; read-only live Task Scheduler query); no manual QA |
 | 12 | Release v1                                    | 🟡 Partial — versioning, changelog and user docs done; installers and release outstanding |
 
-Test counts at last run: 70 automated tests, all passing; `cargo clippy -D warnings` and `cargo fmt --check` clean.
+Test counts at last run: 86 automated tests, all passing; `cargo clippy -D warnings` and `cargo fmt --check` clean.
 
 ## Phase 0 — Project Setup & Licensing
 - [x] Init git repo, `.gitignore` (Rust + Node/Tauri targets + Windows build artifacts)
@@ -79,10 +79,10 @@ Test counts at last run: 70 automated tests, all passing; `cargo clippy -D warni
 - [x] Core unit tests (mocked backend implementing `StartupSource`)
 
 ## Phase 2 — Windows Backend
-- [ ] Enumerate registry Run/RunOnce (HKCU + HKLM, Run + RunOnce) — done for the native registry view; the WOW6432Node (32-bit) view is not read yet
-- [ ] Enumerate Startup folder shortcuts (per-user + all-users `shell:startup` paths) — per-user done; all-users path not wired (needs elevation to change)
-- [ ] Enumerate Task Scheduler tasks filtered to logon/boot triggers (via `taskschd` COM API)
-- [x] Toggle/delete per source type: registry value rename/delete, shortcut move/delete (disable = move to `disabled/`)
+- [x] Enumerate registry Run/RunOnce (HKCU + HKLM, Run + RunOnce, plus HKLM WOW6432Node for 32-bit entries; HKCU WOW6432Node not read)
+- [x] Enumerate Startup folder shortcuts (per-user + all-users `shell:startup` paths); all-users changes need administrator rights
+- [x] Enumerate Task Scheduler tasks filtered to logon/boot triggers (via one `schtasks /query /xml` call; COM API not used)
+- [x] Toggle/delete per source type: registry value rename/delete, shortcut move/delete (disable = move to `disabled/`), task enable/disable/delete via `schtasks`
 - [x] Digital-signature verification (`WinVerifyTrust`, embedded and catalog signatures) feeding the categorization engine
 - [x] UAC elevation manifest wired into the Tauri/MSVC build (`asInvoker`); unelevated-launch fallback messaging shown when a change needs administrator rights. Manual QA still pending.
 - [x] Unit/integration tests against a mockable Win32/COM boundary (CI-safe) — Startup folder tests use temp dirs; registry tests use a throwaway HKCU key; no COM boundary yet
@@ -90,7 +90,7 @@ Test counts at last run: 70 automated tests, all passing; `cargo clippy -D warni
 ## Phase 3 — Linux Backend
 - [x] Enumerate systemd user units (`systemctl --user list-unit-files`; enabled units plus disabled units whose preset is enabled)
 - [x] Enumerate cron `@reboot` entries (user crontab). `/etc/cron.d` is not read yet (system scope)
-- [x] Enumerate XDG autostart `.desktop` files (`~/.config/autostart`, `/etc/xdg/autostart`) — user scope wired; `/etc/xdg/autostart` is constructible via `XdgAutostartSource::new` but not added to any default list
+- [x] Enumerate XDG autostart `.desktop` files (`~/.config/autostart`, `/etc/xdg/autostart`) — both scopes listed; system scope is read-only without root
 - [x] Toggle/delete per source type: `systemctl --user enable/disable` (delete is unsupported for systemd units by design), crontab line comment/uncomment and delete, `.desktop` `Hidden=true` and delete
 - [x] Document user-scope vs. root-scope elevation needs (`docs/elevation.md`)
 - [ ] Verify behavior across at least one major distro (X11 + Wayland)
@@ -113,7 +113,7 @@ Test counts at last run: 70 automated tests, all passing; `cargo clippy -D warni
 - [x] Wire enable/disable/delete from Phase 2/3 behind the `StartupSource` trait — every implemented source; the Tauri command layer uses the owning backend
 - [x] Confirmation-required flag enforced for any Critical-flagged item (delete always requires confirmation too)
 - [x] Prefer reversible disable over delete where the OS supports it (XDG `Hidden=true`, startup-folder move to `disabled/`, registry value rename, `systemctl --user disable`, cron comment marker)
-- [x] Action audit trail (in-memory/session log of what was toggled/deleted, for the confirmation UI and any "undo last action" affordance) — `core::AuditLog`; undo itself not built
+- [x] Action audit trail (in-memory/session log of what was toggled/deleted, for the confirmation UI and any "undo last action" affordance) — `core::AuditLog`; Undo button reverses the last enable/disable this session
 
 ## Phase 7 — Tauri Shell & IPC Layer
 - [x] Tauri app scaffold wired to `core` scan/enumerate logic (`src-tauri/src/service.rs`, Tauri-free and unit-tested)

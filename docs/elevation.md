@@ -10,8 +10,8 @@ tpt-startup separates **user scope** (your account) from **system scope**
 | Startup folder (`%APPDATA%\...\Startup`) | user | nothing |
 | Registry Run / RunOnce, HKCU | user | nothing |
 | Registry Run / RunOnce, HKLM | system | administrator |
-| All-users Startup folder | system | administrator (not wired yet) |
-| Scheduled tasks | varies | not implemented yet |
+| All-users Startup folder | system | administrator |
+| Scheduled tasks with logon or boot triggers | varies | administrator for system tasks (under `\Microsoft\`); nothing for your own tasks |
 
 - The app manifest requests `asInvoker`. The app starts unelevated and never
   shows a UAC prompt at launch.
@@ -27,13 +27,14 @@ tpt-startup separates **user scope** (your account) from **system scope**
 | XDG autostart, `~/.config/autostart` | user | nothing |
 | systemd user units (`systemctl --user`) | user | nothing |
 | User crontab (`crontab -l` / `crontab -`) | user | nothing |
-| `/etc/xdg/autostart`, `/etc/cron.d`, system units | system | root (not wired yet) |
+| `/etc/xdg/autostart` | system | root (listed; read-only without root) |
+| `/etc/cron.d`, system units | system | root (not wired yet) |
 
 - Disabling a systemd user unit runs `systemctl --user disable`. It does not
   delete the unit file.
 - Disabling a cron entry comments the line out with a `#tpt-disabled` marker.
-- System-scope sources are not listed yet. When they are added they will be
-  read-only until the user chooses to run with root.
+- `/etc/xdg/autostart` is listed. Without root, changes fail with a permission
+  error. `/etc/cron.d` and system-wide systemd units are not listed yet.
 
 ## Rules that apply to every source
 

@@ -55,7 +55,7 @@ when you close the app. Nothing is stored on disk.
 | Autostart (.desktop) | Desktop-session autostart entries | | yes |
 | systemd user unit | Background services enabled for your account | | yes |
 | Cron @reboot job | Commands scheduled to run at boot | | yes |
-| Scheduled task | Windows Task Scheduler jobs | not yet | |
+| Scheduled task | Task Scheduler jobs that start at sign-in or boot | yes | |
 
 ## Safety notes
 
