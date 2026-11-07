@@ -1,0 +1,96 @@
+/* Colour tokens. Light is the default; dark follows the OS setting unless
+   the page explicitly sets data-theme. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #eef1f5;
+  --text: #1b2430;
+  --muted: #5b6676;
+  --border: #d5dbe4;
+  --accent: #1f6b7a;
+  --accent-text: #ffffff;
+  --focus: #2f80ed;
+  --safe: #1e7d4f;
+  --safe-bg: #e3f4ea;
+  --rec: #8a5a00;
+  --rec-bg: #fdf1d8;
+  --crit: #b3261e;
+  --crit-bg: #fbe4e2;
+  --danger: #b3261e;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #14181f;
+    --surface: #1d232d;
+    --surface-2: #252d39;
+    --text: #e6ebf2;
+    --muted: #9aa6b6;
+    --border: #36404e;
+    --accent: #5fb3c4;
+    --accent-text: #0e1218;
+    --focus: #7db7ff;
+    --safe: #7fd3a0;
+    --safe-bg: #1c3a2a;
+    --rec: #f2c46d;
+    --rec-bg: #3d3220;
+    --crit: #ff8a80;
+    --crit-bg: #3f2421;
+    --danger: #ff8a80;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #14181f;
+  --surface: #1d232d;
+  --surface-2: #252d39;
+  --text: #e6ebf2;
+  --muted: #9aa6b6;
+  --border: #36404e;
+  --accent: #5fb3c4;
+  --accent-text: #0e1218;
+  --focus: #7db7ff;
+  --safe: #7fd3a0;
+  --safe-bg: #1c3a2a;
+  --rec: #f2c46d;
+  --rec-bg: #3d3220;
+  --crit: #ff8a80;
+  --crit-bg: #3f2421;
+  --danger: #ff8a80;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
