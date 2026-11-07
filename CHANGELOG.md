@@ -42,4 +42,5 @@ All notable changes are recorded here. The format follows
 ### Notes
 
 - Windows boot impact is Unknown in this version.
-- Installers are not built yet.
+- Windows NSIS installer builds locally. It is unsigned, and no release has
+  been published.

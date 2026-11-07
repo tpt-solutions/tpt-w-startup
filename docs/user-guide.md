@@ -3,8 +3,8 @@
 tpt-startup shows the programs that start when you sign in or boot your
 computer. For each one it gives a plain-English explanation and a safety label.
 
-> Installers are not built yet. To run the app today, see the README for
-> build instructions.
+> Windows: run `tpt-startup_<version>_x64-setup.exe` from the installer build.
+> Linux packages are not built yet. To run from source, see the README.
 
 ## The three labels
 

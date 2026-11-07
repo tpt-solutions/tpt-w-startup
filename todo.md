@@ -56,7 +56,7 @@ Decisions locked in for this roadmap:
 | 9  | Archon Support (Design Only)                  | ✅ Done (design-only, as specified) |
 | 10 | Performance & Polish                          | 🟡 Partial — first-run notice only |
 | 11 | Testing & QA                                  | 🟡 Partial — 86 automated tests (Windows registry and file tests on real disposable data; read-only live Task Scheduler query); no manual QA |
-| 12 | Release v1                                    | 🟡 Partial — versioning, changelog and user docs done; installers and release outstanding |
+| 12 | Release v1                                    | 🟡 Partial — versioning, changelog, user docs and a local NSIS installer done; code-signing decision, Linux packages and the release itself outstanding |
 
 Test counts at last run: 86 automated tests, all passing; `cargo clippy -D warnings` and `cargo fmt --check` clean.
 
@@ -150,7 +150,7 @@ Test counts at last run: 86 automated tests, all passing; `cargo clippy -D warni
 
 ## Phase 12 — Release v1
 - [x] Finalize versioning scheme (SemVer) and changelog process (`docs/versioning.md`, `CHANGELOG.md`)
-- [ ] Windows installer (MSI/NSIS via Tauri bundler) with UAC manifest embedded, code-signing decision
+- [x] Windows installer (NSIS via Tauri bundler) builds locally with the `asInvoker` manifest embedded. Code signing is not decided yet: the installer is unsigned.
 - [ ] Linux packaging (.deb/.rpm/AppImage via Tauri bundler), documented elevation path for root-scope sources
 - [ ] Publish LICENSE files + notices in release artifacts
 - [ ] User-facing docs (install guide, category/glossary explainer, safety notes on disabling Critical items) — user guide with labels, glossary and safety notes done (`docs/user-guide.md`); install guide waits for installers
