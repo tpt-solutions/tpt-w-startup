@@ -92,6 +92,30 @@ impl Service {
     pub fn audit_entries(&self) -> Vec<AuditEntry> {
         self.audit.entries().to_vec()
     }
+
+    /// Reverse the most recent successful enable or disable.
+    ///
+    /// The reversal goes through [`Service::apply`], so it gets the same
+    /// confirmation rule and audit entry as any other action. Deletes cannot
+    /// be undone.
+    pub fn undo_last(&mut self, confirmed: bool) -> Result<(), ActionError> {
+        let last = self
+            .audit
+            .entries()
+            .iter()
+            .rev()
+            .find(|e| e.error.is_none())
+            .cloned()
+            .ok_or_else(|| {
+                ActionError::Source(SourceError::Unsupported("nothing to undo".into()))
+            })?;
+        let inverse = last.action.inverse().ok_or_else(|| {
+            ActionError::Source(SourceError::Unsupported(
+                "deleted entries cannot be restored from here".into(),
+            ))
+        })?;
+        self.apply(&last.item_id, inverse, confirmed)
+    }
 }
 
 #[cfg(test)]
@@ -227,5 +251,36 @@ mod tests {
         );
         svc.apply("a", Action::Delete, true).unwrap();
         assert!(shared.0.lock().unwrap().is_empty());
+    }
+
+    #[test]
+    fn undo_reverses_last_successful_disable() {
+        let (mut svc, shared) = service_with(vec![item("a", "Spotify", "spotify")]);
+        svc.apply("a", Action::Disable, false).unwrap();
+        assert!(!shared.0.lock().unwrap()[0].enabled);
+
+        svc.undo_last(false).unwrap();
+        assert!(shared.0.lock().unwrap()[0].enabled);
+        // The undo itself is recorded like any other action.
+        assert_eq!(svc.audit_entries().last().unwrap().action, Action::Enable);
+    }
+
+    #[test]
+    fn undo_refuses_to_restore_a_delete() {
+        let (mut svc, _) = service_with(vec![item("a", "Spotify", "spotify")]);
+        svc.apply("a", Action::Delete, true).unwrap();
+        assert!(matches!(
+            svc.undo_last(true),
+            Err(ActionError::Source(SourceError::Unsupported(_)))
+        ));
+    }
+
+    #[test]
+    fn undo_with_empty_log_is_an_error() {
+        let (mut svc, _) = service_with(vec![item("a", "Spotify", "spotify")]);
+        assert!(matches!(
+            svc.undo_last(false),
+            Err(ActionError::Source(SourceError::Unsupported(_)))
+        ));
     }
 }

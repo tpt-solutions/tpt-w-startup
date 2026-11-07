@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { applyAction, auditLog, listItems } from './lib/api';
+  import { applyAction, auditLog, listItems, undoLast } from './lib/api';
   import type { Action, AuditEntry, Category, ScanResult, StartupItem } from './lib/types';
   import { CATEGORY_LABEL, IMPACT_LABEL, SOURCE_LABEL, needsConfirmation } from './lib/labels';
   import ConfirmDialog from './lib/ConfirmDialog.svelte';
@@ -44,7 +44,9 @@
   let tab = $state<Tab>('all');
   let query = $state('');
   let selectedId = $state<string | null>(null);
-  let pending = $state<{ item: StartupItem; action: Action } | null>(null);
+  let pending = $state<{ item: StartupItem; action: Action; undo?: boolean } | null>(null);
+  // The last successful enable/disable this session, for the Undo button.
+  let lastChange = $state<{ item: StartupItem; action: Action } | null>(null);
 
   const counts = $derived({
     all: items.length,
@@ -91,12 +93,30 @@
     }
   }
 
-  async function perform(item: StartupItem, action: Action, confirmed: boolean) {
+  function requestUndo() {
+    if (!lastChange) return;
+    const { item, action } = lastChange;
+    const inverse: Action = action === 'enable' ? 'disable' : 'enable';
+    if (needsConfirmation(item.category, inverse)) {
+      pending = { item, action: inverse, undo: true };
+    } else {
+      void perform(item, inverse, false, true);
+    }
+  }
+
+  async function perform(item: StartupItem, action: Action, confirmed: boolean, undo = false) {
     busy = true;
     try {
-      await applyAction(item.id, action, confirmed);
-      const done = action === 'delete' ? 'deleted' : action === 'disable' ? 'disabled' : 'enabled';
-      notice = `“${item.display_name}” ${done}.`;
+      if (undo) {
+        await undoLast(confirmed);
+        lastChange = null;
+        notice = `Undid the last change to “${item.display_name}”.`;
+      } else {
+        await applyAction(item.id, action, confirmed);
+        lastChange = action === 'delete' ? null : { item, action };
+        const done = action === 'delete' ? 'deleted' : action === 'disable' ? 'disabled' : 'enabled';
+        notice = `“${item.display_name}” ${done}.`;
+      }
       if (action === 'delete' && selectedId === item.id) selectedId = null;
       pending = null;
       await refresh();
@@ -105,6 +125,7 @@
       const hint = message.includes('permission denied')
         ? ' This entry is system-wide. Close tpt-startup and reopen it as administrator to change it.'
         : '';
+      lastChange = null;
       notice = `Could not change “${item.display_name}”: ${message}.${hint}`;
       pending = null;
     } finally {
@@ -159,7 +180,12 @@
   {#if notice}
     <div class="banner" role="status">
       <span>{notice}</span>
-      <button type="button" class="link" onclick={() => (notice = null)}>Dismiss</button>
+      <span class="banner-actions">
+        {#if lastChange}
+          <button type="button" class="link" onclick={requestUndo} disabled={busy}>Undo</button>
+        {/if}
+        <button type="button" class="link" onclick={() => (notice = null)}>Dismiss</button>
+      </span>
     </div>
   {/if}
 
@@ -290,7 +316,7 @@
     item={pending.item}
     action={pending.action}
     {busy}
-    onconfirm={() => pending && perform(pending.item, pending.action, true)}
+    onconfirm={() => pending && perform(pending.item, pending.action, true, pending.undo ?? false)}
     oncancel={() => (pending = null)}
   />
 {/if}
@@ -333,6 +359,11 @@
     border-radius: 8px;
     padding: 10px 12px;
     margin-bottom: 12px;
+  }
+  .banner-actions {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
   }
   .banner.intro h2 {
     font-size: 1rem;

@@ -12,6 +12,10 @@ export function applyAction(id: string, action: Action, confirmed: boolean): Pro
   return invoke<void>('apply_action', { id, action, confirmed });
 }
 
+export function undoLast(confirmed: boolean): Promise<void> {
+  return invoke<void>('undo_last', { confirmed });
+}
+
 export function auditLog(): Promise<AuditEntry[]> {
   return invoke<AuditEntry[]>('audit_log');
 }

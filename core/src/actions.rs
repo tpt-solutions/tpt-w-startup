@@ -19,6 +19,18 @@ pub enum Action {
     Delete,
 }
 
+impl Action {
+    /// The action that reverses this one. Deletes have no inverse: the entry
+    /// is gone and is not restored by the app.
+    pub fn inverse(self) -> Option<Action> {
+        match self {
+            Action::Enable => Some(Action::Disable),
+            Action::Disable => Some(Action::Enable),
+            Action::Delete => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionError {
     /// The action needs explicit user confirmation and none was given.

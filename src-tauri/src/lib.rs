@@ -23,13 +23,30 @@ fn default_sources() -> Vec<BoxedSource> {
         sources.push(Box::new(src));
     }
     #[cfg(target_os = "windows")]
+    if let Some(src) = tpt_startup_windows::StartupFolderSource::all_users_default() {
+        // Read-only without elevation; changes report PermissionDenied.
+        sources.push(Box::new(src));
+    }
+    #[cfg(target_os = "windows")]
+    sources.push(Box::new(tpt_startup_windows::TaskSchedulerSource::new(
+        tpt_startup_core::runner::SystemRunner,
+    )));
+    #[cfg(target_os = "windows")]
     {
+        use tpt_startup_windows::registry::{RUNONCE_32BIT_SUBKEY, RUN_32BIT_SUBKEY};
         use tpt_startup_windows::{Hive, RegistryRunSource};
         // HKLM sources are listed for visibility; their writes need elevation
         // and report PermissionDenied when the app is not elevated.
         for hive in [Hive::CurrentUser, Hive::LocalMachine] {
             sources.push(Box::new(RegistryRunSource::run(hive)));
             sources.push(Box::new(RegistryRunSource::run_once(hive)));
+        }
+        // 32-bit apps on 64-bit Windows register under WOW6432Node.
+        for subkey in [RUN_32BIT_SUBKEY, RUNONCE_32BIT_SUBKEY] {
+            sources.push(Box::new(RegistryRunSource::with_subkey(
+                Hive::LocalMachine,
+                subkey,
+            )));
         }
     }
     #[cfg(target_os = "linux")]
@@ -38,6 +55,9 @@ fn default_sources() -> Vec<BoxedSource> {
         if let Some(src) = tpt_startup_linux::XdgAutostartSource::user_default() {
             sources.push(Box::new(src));
         }
+        sources.push(Box::new(
+            tpt_startup_linux::XdgAutostartSource::system_default(),
+        ));
         // Missing systemctl or crontab shows up as a per-source warning.
         sources.push(Box::new(SystemdUserSource::new(SystemRunner)));
         sources.push(Box::new(CronUserSource::new(SystemRunner)));
@@ -67,6 +87,14 @@ fn apply_action(
 }
 
 #[tauri::command]
+fn undo_last(state: State<'_, AppState>, confirmed: bool) -> Result<(), String> {
+    let mut svc = state
+        .lock()
+        .map_err(|_| "internal state poisoned".to_string())?;
+    svc.undo_last(confirmed).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn audit_log(state: State<'_, AppState>) -> Result<Vec<AuditEntry>, String> {
     let svc = state
         .lock()
@@ -80,6 +108,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             list_items,
             apply_action,
+            undo_last,
             audit_log
         ])
         .run(tauri::generate_context!())
