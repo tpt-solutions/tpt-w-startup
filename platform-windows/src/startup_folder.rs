@@ -5,11 +5,15 @@
 //!
 //! Disable is reversible: the entry is moved into a `disabled` subfolder of
 //! the startup folder and moved back to re-enable. Item ids are
-//! `startup:<enabled|disabled>/<file name>`; each id is resolved against a
-//! fresh listing, so caller input never becomes a path.
+//! `startup:<scope>:<enabled|disabled>/<file name>`, where scope is `user` or
+//! `all-users`. Each id is resolved against a fresh listing, so caller input
+//! never becomes a path.
 //!
-//! Limitations (todo.md Phase 2): `.lnk` targets are not parsed yet and
-//! signature status is reported as `Unknown` until `WinVerifyTrust` is wired.
+//! Changes to the all-users folder need administrator rights; they fail with
+//! `PermissionDenied` when the app is not elevated.
+//!
+//! Limitations (todo.md Phase 2): `.lnk` targets are not parsed yet, so these
+//! items have no command and no signature check.
 
 use std::fs;
 use std::io;
@@ -18,26 +22,38 @@ use tpt_startup_core::{SignatureStatus, SourceError, SourceKind, StartupItem, St
 
 const PREFIX: &str = "startup:";
 const DISABLED_DIR: &str = "disabled";
+/// Path of the Startup folder below `APPDATA` or `ProgramData`.
+const STARTUP_RELATIVE: &str = r"Microsoft\Windows\Start Menu\Programs\Startup";
 
 pub struct StartupFolderSource {
     dir: PathBuf,
+    scope: &'static str,
 }
 
 impl StartupFolderSource {
-    pub fn new(dir: impl Into<PathBuf>) -> Self {
-        Self { dir: dir.into() }
+    /// A startup folder with an explicit scope label (`user` or `all-users`).
+    pub fn new(dir: impl Into<PathBuf>, scope: &'static str) -> Self {
+        Self {
+            dir: dir.into(),
+            scope,
+        }
     }
 
     /// Per-user startup folder: `%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup`.
     pub fn user_default() -> Option<Self> {
         let appdata = std::env::var_os("APPDATA")?;
         Some(Self::new(
-            PathBuf::from(appdata)
-                .join("Microsoft")
-                .join("Windows")
-                .join("Start Menu")
-                .join("Programs")
-                .join("Startup"),
+            PathBuf::from(appdata).join(STARTUP_RELATIVE),
+            "user",
+        ))
+    }
+
+    /// All-users startup folder under `%ProgramData%`. Read-only without elevation.
+    pub fn all_users_default() -> Option<Self> {
+        let programdata = std::env::var_os("ProgramData")?;
+        Some(Self::new(
+            PathBuf::from(programdata).join(STARTUP_RELATIVE),
+            "all-users",
         ))
     }
 
@@ -61,15 +77,17 @@ impl StartupFolderSource {
         Ok(files)
     }
 
-    fn id_for(enabled: bool, file_name: &str) -> String {
+    fn id_for(&self, enabled: bool, file_name: &str) -> String {
         let state = if enabled { "enabled" } else { "disabled" };
-        format!("{PREFIX}{state}/{file_name}")
+        format!("{PREFIX}{}:{state}/{file_name}", self.scope)
     }
 
     /// Resolve an id to (current path, enabled state) by re-listing both folders.
     fn resolve(&self, id: &str) -> Result<(PathBuf, bool), SourceError> {
         let rest = id
             .strip_prefix(PREFIX)
+            .and_then(|r| r.strip_prefix(self.scope))
+            .and_then(|r| r.strip_prefix(':'))
             .ok_or_else(|| SourceError::NotFound(id.to_string()))?;
         let (state, name) = rest
             .split_once('/')
@@ -107,7 +125,7 @@ impl StartupSource for StartupFolderSource {
                     .to_string_lossy()
                     .into_owned();
                 let mut item = StartupItem::new(
-                    Self::id_for(enabled, &file_name),
+                    self.id_for(enabled, &file_name),
                     SourceKind::StartupFolder,
                     display,
                     path.to_string_lossy(),

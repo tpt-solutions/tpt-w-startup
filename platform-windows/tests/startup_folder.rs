@@ -34,13 +34,13 @@ fn enumerates_enabled_and_disabled_entries() {
     fs::create_dir_all(tmp.0.join("disabled")).unwrap();
     fs::write(tmp.0.join("disabled").join("Old.lnk"), b"x").unwrap();
 
-    let src = StartupFolderSource::new(&tmp.0);
+    let src = StartupFolderSource::new(&tmp.0, "user");
     let items = src.enumerate().unwrap();
     assert_eq!(items.len(), 2);
 
     let helper = items.iter().find(|i| i.display_name == "Helper").unwrap();
     assert!(helper.enabled);
-    assert_eq!(helper.id, "startup:enabled/Helper.lnk");
+    assert_eq!(helper.id, "startup:user:enabled/Helper.lnk");
 
     let old = items.iter().find(|i| i.display_name == "Old").unwrap();
     assert!(!old.enabled);
@@ -51,14 +51,14 @@ fn enumerates_enabled_and_disabled_entries() {
 fn disable_moves_into_disabled_folder_and_enable_restores() {
     let tmp = TempDir::new("toggle");
     fs::write(tmp.0.join("Helper.lnk"), b"x").unwrap();
-    let mut src = StartupFolderSource::new(&tmp.0);
+    let mut src = StartupFolderSource::new(&tmp.0, "user");
 
-    src.set_enabled("startup:enabled/Helper.lnk", false)
+    src.set_enabled("startup:user:enabled/Helper.lnk", false)
         .unwrap();
     assert!(!tmp.0.join("Helper.lnk").exists());
     assert!(tmp.0.join("disabled").join("Helper.lnk").exists());
 
-    src.set_enabled("startup:disabled/Helper.lnk", true)
+    src.set_enabled("startup:user:disabled/Helper.lnk", true)
         .unwrap();
     assert!(tmp.0.join("Helper.lnk").exists());
     assert!(!tmp.0.join("disabled").join("Helper.lnk").exists());
@@ -68,8 +68,9 @@ fn disable_moves_into_disabled_folder_and_enable_restores() {
 fn setting_current_state_is_a_noop() {
     let tmp = TempDir::new("noop");
     fs::write(tmp.0.join("Helper.lnk"), b"x").unwrap();
-    let mut src = StartupFolderSource::new(&tmp.0);
-    src.set_enabled("startup:enabled/Helper.lnk", true).unwrap();
+    let mut src = StartupFolderSource::new(&tmp.0, "user");
+    src.set_enabled("startup:user:enabled/Helper.lnk", true)
+        .unwrap();
     assert!(tmp.0.join("Helper.lnk").exists());
 }
 
@@ -77,8 +78,8 @@ fn setting_current_state_is_a_noop() {
 fn delete_removes_entry() {
     let tmp = TempDir::new("delete");
     fs::write(tmp.0.join("Helper.lnk"), b"x").unwrap();
-    let mut src = StartupFolderSource::new(&tmp.0);
-    src.delete("startup:enabled/Helper.lnk").unwrap();
+    let mut src = StartupFolderSource::new(&tmp.0, "user");
+    src.delete("startup:user:enabled/Helper.lnk").unwrap();
     assert!(!tmp.0.join("Helper.lnk").exists());
 }
 
@@ -86,12 +87,12 @@ fn delete_removes_entry() {
 fn rejects_ids_not_from_enumeration() {
     let tmp = TempDir::new("reject");
     fs::write(tmp.0.join("Helper.lnk"), b"x").unwrap();
-    let mut src = StartupFolderSource::new(&tmp.0);
+    let mut src = StartupFolderSource::new(&tmp.0, "user");
 
     // Path traversal and unknown names must not resolve to anything.
     for bad in [
-        "startup:enabled/../secret.txt",
-        "startup:enabled/Missing.lnk",
+        "startup:user:enabled/../secret.txt",
+        "startup:user:enabled/Missing.lnk",
         "startup:other/Helper.lnk",
         "registry:HKCU/whatever",
         "",
@@ -106,6 +107,34 @@ fn rejects_ids_not_from_enumeration() {
 #[test]
 fn missing_folder_enumerates_empty() {
     let tmp = TempDir::new("missing");
-    let src = StartupFolderSource::new(tmp.0.join("does-not-exist"));
+    let src = StartupFolderSource::new(tmp.0.join("does-not-exist"), "user");
     assert!(src.enumerate().unwrap().is_empty());
+}
+
+#[test]
+fn ids_from_another_scope_are_rejected() {
+    let tmp = TempDir::new("scope");
+    fs::write(tmp.0.join("Helper.lnk"), b"x").unwrap();
+    let mut src = StartupFolderSource::new(&tmp.0, "user");
+    // An all-users id must not resolve against the user folder.
+    assert!(matches!(
+        src.set_enabled("startup:all-users:enabled/Helper.lnk", false),
+        Err(SourceError::NotFound(_))
+    ));
+    assert!(tmp.0.join("Helper.lnk").exists());
+}
+
+#[test]
+fn same_file_name_in_two_scopes_gets_distinct_ids() {
+    let user = TempDir::new("scope-user");
+    let all = TempDir::new("scope-all");
+    fs::write(user.0.join("Helper.lnk"), b"x").unwrap();
+    fs::write(all.0.join("Helper.lnk"), b"x").unwrap();
+    let a = StartupFolderSource::new(&user.0, "user")
+        .enumerate()
+        .unwrap();
+    let b = StartupFolderSource::new(&all.0, "all-users")
+        .enumerate()
+        .unwrap();
+    assert_ne!(a[0].id, b[0].id);
 }

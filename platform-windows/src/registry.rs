@@ -28,6 +28,10 @@ pub const DISABLED_PREFIX: &str = "tpt-disabled.";
 
 pub const RUN_SUBKEY: &str = r"Software\Microsoft\Windows\CurrentVersion\Run";
 pub const RUNONCE_SUBKEY: &str = r"Software\Microsoft\Windows\CurrentVersion\RunOnce";
+/// 32-bit Run keys on 64-bit Windows (HKLM only in practice).
+pub const RUN_32BIT_SUBKEY: &str = r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Run";
+pub const RUNONCE_32BIT_SUBKEY: &str =
+    r"Software\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Hive {

@@ -72,7 +72,7 @@ fn enumerate_disable_enable_roundtrip() {
     let tmp = TempDir::new("roundtrip");
     let file = tmp.0.join("example-sync.desktop");
     fs::write(&file, SAMPLE).unwrap();
-    let mut src = XdgAutostartSource::new(&tmp.0);
+    let mut src = XdgAutostartSource::new(&tmp.0, "user");
 
     let items = src.enumerate().unwrap();
     assert_eq!(items.len(), 1);
@@ -80,12 +80,14 @@ fn enumerate_disable_enable_roundtrip() {
     assert!(items[0].enabled);
     assert!(items[0].reversible_disable);
 
-    src.set_enabled("xdg:example-sync.desktop", false).unwrap();
+    src.set_enabled("xdg:user:example-sync.desktop", false)
+        .unwrap();
     let after = src.enumerate().unwrap();
     assert!(!after[0].enabled);
     assert!(file.exists(), "disable must not delete the file");
 
-    src.set_enabled("xdg:example-sync.desktop", true).unwrap();
+    src.set_enabled("xdg:user:example-sync.desktop", true)
+        .unwrap();
     assert!(src.enumerate().unwrap()[0].enabled);
 }
 
@@ -94,8 +96,8 @@ fn delete_removes_file() {
     let tmp = TempDir::new("delete");
     let file = tmp.0.join("example-sync.desktop");
     fs::write(&file, SAMPLE).unwrap();
-    let mut src = XdgAutostartSource::new(&tmp.0);
-    src.delete("xdg:example-sync.desktop").unwrap();
+    let mut src = XdgAutostartSource::new(&tmp.0, "user");
+    src.delete("xdg:user:example-sync.desktop").unwrap();
     assert!(!file.exists());
 }
 
@@ -104,13 +106,13 @@ fn ignores_non_desktop_files_and_rejects_unknown_ids() {
     let tmp = TempDir::new("reject");
     fs::write(tmp.0.join("notes.txt"), "hi").unwrap();
     fs::write(tmp.0.join("example-sync.desktop"), SAMPLE).unwrap();
-    let mut src = XdgAutostartSource::new(&tmp.0);
+    let mut src = XdgAutostartSource::new(&tmp.0, "user");
     assert_eq!(src.enumerate().unwrap().len(), 1);
 
     for bad in [
-        "xdg:notes.txt",
-        "xdg:../etc/passwd",
-        "xdg:missing.desktop",
+        "xdg:user:notes.txt",
+        "xdg:user:../etc/passwd",
+        "xdg:user:missing.desktop",
         "cron:user:1",
     ] {
         assert!(

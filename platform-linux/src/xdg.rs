@@ -19,11 +19,16 @@ const GROUP: &str = "[Desktop Entry]";
 
 pub struct XdgAutostartSource {
     dir: PathBuf,
+    scope: &'static str,
 }
 
 impl XdgAutostartSource {
-    pub fn new(dir: impl Into<PathBuf>) -> Self {
-        Self { dir: dir.into() }
+    /// An autostart directory with an explicit scope label (`user` or `system`).
+    pub fn new(dir: impl Into<PathBuf>, scope: &'static str) -> Self {
+        Self {
+            dir: dir.into(),
+            scope,
+        }
     }
 
     /// User scope: `$XDG_CONFIG_HOME/autostart`, falling back to `~/.config/autostart`.
@@ -31,7 +36,12 @@ impl XdgAutostartSource {
         let base = std::env::var_os("XDG_CONFIG_HOME")
             .map(PathBuf::from)
             .or_else(|| std::env::var_os("HOME").map(|h| PathBuf::from(h).join(".config")))?;
-        Some(Self::new(base.join("autostart")))
+        Some(Self::new(base.join("autostart"), "user"))
+    }
+
+    /// System scope: `/etc/xdg/autostart`. Read-only without root.
+    pub fn system_default() -> Self {
+        Self::new("/etc/xdg/autostart", "system")
     }
 
     fn desktop_files(&self) -> Result<Vec<PathBuf>, SourceError> {
@@ -51,6 +61,8 @@ impl XdgAutostartSource {
     fn resolve(&self, id: &str) -> Result<PathBuf, SourceError> {
         let name = id
             .strip_prefix(PREFIX)
+            .and_then(|r| r.strip_prefix(self.scope))
+            .and_then(|r| r.strip_prefix(':'))
             .ok_or_else(|| SourceError::NotFound(id.to_string()))?;
         self.desktop_files()?
             .into_iter()
@@ -78,7 +90,7 @@ impl StartupSource for XdgAutostartSource {
                 .get("Name")
                 .cloned()
                 .unwrap_or_else(|| file_name.clone());
-            let id = format!("{PREFIX}{file_name}");
+            let id = format!("{PREFIX}{}:{file_name}", self.scope);
             let mut item = StartupItem::new(
                 id,
                 SourceKind::XdgAutostart,
