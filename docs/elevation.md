@@ -28,13 +28,14 @@ tpt-startup separates **user scope** (your account) from **system scope**
 | systemd user units (`systemctl --user`) | user | nothing |
 | User crontab (`crontab -l` / `crontab -`) | user | nothing |
 | `/etc/xdg/autostart` | system | root (listed; read-only without root) |
-| `/etc/cron.d`, system units | system | root (not wired yet) |
+| `/etc/cron.d` | system | root (listed; read-only without root) |
+| System-wide systemd units | system | root (not wired yet) |
 
 - Disabling a systemd user unit runs `systemctl --user disable`. It does not
   delete the unit file.
 - Disabling a cron entry comments the line out with a `#tpt-disabled` marker.
 - `/etc/xdg/autostart` is listed. Without root, changes fail with a permission
-  error. `/etc/cron.d` and system-wide systemd units are not listed yet.
+  error. System-wide systemd units are not listed yet.
 
 ## Rules that apply to every source
 
