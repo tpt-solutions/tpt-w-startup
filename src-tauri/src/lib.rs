@@ -61,6 +61,8 @@ fn default_sources() -> Vec<BoxedSource> {
         // Missing systemctl or crontab shows up as a per-source warning.
         sources.push(Box::new(SystemdUserSource::new(SystemRunner)));
         sources.push(Box::new(CronUserSource::new(SystemRunner)));
+        // /etc/cron.d: listed for everyone, changes need root.
+        sources.push(Box::new(tpt_startup_linux::CronDirSource::system_default()));
     }
     sources
 }
