@@ -9,6 +9,7 @@ pub mod actions;
 pub mod engine;
 pub mod impact;
 pub mod model;
+pub mod runner;
 pub mod source;
 
 #[cfg(feature = "archon")]
