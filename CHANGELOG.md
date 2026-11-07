@@ -33,6 +33,11 @@ All notable changes are recorded here. The format follows
 - Documentation: README, user guide, elevation and scope, boot-impact decision,
   Archon design (design only), versioning process.
 
+### Fixed
+
+- The app failed to launch with "Entry Point Not Found" (TaskDialogIndirect).
+  The app manifest now declares Common Controls v6.
+
 ### Changed
 
 - Startup-folder and XDG autostart item ids now include a scope label:
